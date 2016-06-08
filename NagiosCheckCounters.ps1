@@ -489,7 +489,7 @@ Function GetMemoryCounters {
 
         #Memory % Committed Bytes In Use
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\% Committed Bytes In Use*") }
-        $PublishedResults += New-NagiosResult -Label "Memory % Committed Bytes In Use" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "Memory % Committed Bytes In Use" -Value $MemValue.CookedValue -Unit "%"
 
         #Memory Pages/sec
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Pages/sec*") }
@@ -557,7 +557,7 @@ Function GetDiskCounters {
                 # TODO limits
                 New-NagiosResult -Label "LogicalDisk($DiskName) % Free Space" -Value $DiskSpacePercentage.CookedValue -Unit "%"
                 # TODO limits
-                New-NagiosResult -Label "LogicalDisk($DiskName) Free Megabytes" -Value $DiskSpaceUsage.CookedValue -Unit "MB"
+                New-NagiosResult -Label "LogicalDisk($DiskName) Free Bytes" -Value ($DiskSpaceUsage.CookedValue * 1024 * 1024) -Unit "B"
             }
 
         }
