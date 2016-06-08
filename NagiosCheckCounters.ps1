@@ -30,7 +30,8 @@
 $DefaultsStruct = New-object PSObject -Property @{
     ComputerName = ([System.Net.Dns]::GetHostByName((hostname.exe)).HostName).tolower();
     Modes = ("cpu", "mem", "disk", "net", "sys");
-    Filters = @();
+    Exclude = @();
+    Include = @();
     ExitCode = 3;
     WarningCount = 0;
     CriticalCount = 0;
@@ -144,9 +145,15 @@ Function Initialize-Args {
                     $i++
                 }
 
-                "^(-f|--Filters)$" {
+                "^(-x|--Exclude)$" {
                     # TODO validate input string ?
-                    $script:DefaultsStruct.Filters = $value -split ','
+                    $script:DefaultsStruct.Exclude = $value -split ','
+                    $i++
+                }
+
+                "^(-i|--Include)$" {
+                    # TODO validate input string ?
+                    $script:DefaultsStruct.Include = $value -split ','
                     $i++
                 }
 
@@ -214,9 +221,16 @@ NagiosCheckCounters.ps1:
 This script is designed to monitor preselected Microsoft Windows performance counters.
 Arguments:
     -m 	 | --Modes           Optional comma separated list of query modes. Default cpu,mem,disk,net,sys.
-    -f   | --Filter          Optional comma separated list of exclusion filters (substrings),
-                             applicable to LogicalDiskNames, PhysDiskNames and InterfaceNames.
+
+    -i   | --Include         Optional comma separated list of inclusion filters (whitelist),
+                             applicable to CpuNames, LogicalDiskNames, PhysDiskNames and InterfaceNames.
                              For example: "C:","X:"
+    -x   | --Exclude         Optional comma separated list of exclusion filters (blacklist),
+                             applicable to CpuNames, LogicalDiskNames, PhysDiskNames and InterfaceNames.
+                             For example: "C:","X:"
+                             
+                             Note: The blacklist is applied after the whitelist
+
     -h   | --Help 			 Print this help.
 "@
 
@@ -228,14 +242,28 @@ Function Process-Filter {
 
     Param ( [Parameter(Mandatory=$True)][string]$String )
 
-    $Ignore = $true
-    $DefaultsStruct.Filters | ForEach-Object {
-        If ( $String.Contains("$_") ) {
-            $Ignore = $false
+    # set default
+    $DoCheck = $false
+    # firts determine whitelist
+    if ( $script:DefaultsStruct.Include.Count -gt 0 ) {
+        $script:DefaultsStruct.Include | ForEach-Object {
+            If ( $String.Contains("$_") ) {
+                $DoCheck = $true
+            }
+        }
+    } Else {
+        $DoCheck = $true
+    }
+    # then apply blacklist
+    if ( $script:DefaultsStruct.Exclude.Count -gt 0 ) {
+        $script:DefaultsStruct.Exclude | ForEach-Object {
+            If ( $String.Contains("$_") ) {
+                $DoCheck = $false
+            }
         }
     }
 
-    Return $Ignore
+    Return $DoCheck
 
 }
 
@@ -371,30 +399,34 @@ Function GetProcessorCounters {
             $Cpu = $_.Group
             $CpuName = (Get-Culture).TextInfo.ToTitleCase($_.Name)
 
-            #Per CPU % Processor Time
-            $CpuValue = $Cpu | ? { ($_.Path -like "*\% processor time*") }
-            # TODO limit if ($CpuName -eq "_total") {
-            New-NagiosResult -Label "Processor($CpuName) % Processor Time" -Value $CpuValue.CookedValue -Unit "%"
+            if (Process-Filter $CpuName)  {
 
-            #Per CPU % User Time
-            $CpuValue = $Cpu | ? { ($_.Path -like "*\% user time*") }
-            New-NagiosResult -Label "Processor($CpuName) % User Time" -Value $CpuValue.CookedValue -Unit "%"
+                #Per CPU % Processor Time
+                $CpuValue = $Cpu | ? { ($_.Path -like "*\% processor time*") }
+                # TODO limit if ($CpuName -eq "_total") {
+                New-NagiosResult -Label "Processor($CpuName) % Processor Time" -Value $CpuValue.CookedValue -Unit "%"
 
-            #Per CPU % Idle Time
-            $CpuValue = $Cpu | ? { ($_.Path -like "*\% idle time*") }
-            New-NagiosResult -Label "Processor($CpuName) % Idle Time" -Value $CpuValue.CookedValue -Unit "%"
+                #Per CPU % User Time
+                $CpuValue = $Cpu | ? { ($_.Path -like "*\% user time*") }
+                New-NagiosResult -Label "Processor($CpuName) % User Time" -Value $CpuValue.CookedValue -Unit "%"
 
-            #Per CPU % Interrupt Time
-            $CpuValue = $Cpu | ? { ($_.Path -like "*\% interrupt time*") }
-            New-NagiosResult -Label "Processor($CpuName) % Interrupt Time" -Value $CpuValue.CookedValue -Unit "%"
+                #Per CPU % Idle Time
+                $CpuValue = $Cpu | ? { ($_.Path -like "*\% idle time*") }
+                New-NagiosResult -Label "Processor($CpuName) % Idle Time" -Value $CpuValue.CookedValue -Unit "%"
 
-            #Per CPU % Privileged Time
-            $CpuValue = $Cpu | ? { ($_.Path -like "*\% privileged time*") }
-            New-NagiosResult -Label "Processor($CpuName) % Privileged Time" -Value $CpuValue.CookedValue -Unit "%"
+                #Per CPU % Interrupt Time
+                $CpuValue = $Cpu | ? { ($_.Path -like "*\% interrupt time*") }
+                New-NagiosResult -Label "Processor($CpuName) % Interrupt Time" -Value $CpuValue.CookedValue -Unit "%"
 
-            #Per CPU Interrupts/sec
-            $CpuValue = $Cpu | ? { ($_.Path -like "*\interrupts/sec*") }
-            New-NagiosResult -Label "Processor($CpuName) Interrupts/sec" -Value $CpuValue.CookedValue
+                #Per CPU % Privileged Time
+                $CpuValue = $Cpu | ? { ($_.Path -like "*\% privileged time*") }
+                New-NagiosResult -Label "Processor($CpuName) % Privileged Time" -Value $CpuValue.CookedValue -Unit "%"
+
+                #Per CPU Interrupts/sec
+                $CpuValue = $Cpu | ? { ($_.Path -like "*\interrupts/sec*") }
+                New-NagiosResult -Label "Processor($CpuName) Interrupts/sec" -Value $CpuValue.CookedValue
+
+            }
 
         }
 
@@ -518,7 +550,7 @@ Function GetDiskCounters {
             $Disk = $_.Group
             $DiskName = (Get-Culture).TextInfo.ToTitleCase($_.Name)
 
-            if (Process-Filter $DiskName) {
+            if (Process-Filter $DiskName)  {
                 $DiskSpacePercentage = $Disk | ? { ($_.Path -like "*% Free Space*") }
                 $DiskSpaceUsage = $Disk | ? { ($_.Path -like "*Free Megabytes*") }
 
