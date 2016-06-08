@@ -268,19 +268,17 @@ Function Publish-NagiosResults {
         [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
         [ValidateNotNullOrEmpty()]
         [String[]]$Publish,
-        [String]$Text = "Queried " + [string]$script:DefaultsStruct.ComputerName + " using modes [" + [string]$script:DefaultsStruct.Modes + "]",
-        [Int]$Warning = 0,
-        [Int]$Critical = 0
+        [String]$Text = "Queried " + [string]$script:DefaultsStruct.ComputerName + " using modes [" + [string]$script:DefaultsStruct.Modes + "]"
 
     )
 
     Begin {
 
-        If ($script:DefaultsStruct.CriticalCount > 0){
+        If ($script:DefaultsStruct.CriticalCount -gt 0){
             $PublishedResult = "CRITCAL: "
             $script:DefaultsStruct.ExitCode = 2
         }
-        ElseIf ($script:DefaultsStruct.WarningCount > 0){
+        ElseIf ($script:DefaultsStruct.WarningCount -gt 0){
             $PublishedResult = "WARNING: "
             $script:DefaultsStruct.ExitCode = 1
         }
