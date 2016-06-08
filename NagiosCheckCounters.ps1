@@ -325,7 +325,7 @@ Function Publish-NagiosResults {
         }
 
         # TODO get messages for limits
-        $PublishedResult += "$Text |`r`n"
+        $PublishedResult += "$Text |"
 
     }
 
