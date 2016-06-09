@@ -1,4 +1,4 @@
-Error:
+Error messages:
 
 Get-Counter : The specified object was not found on the computer.
 At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:767 char:15
@@ -7,8 +7,7 @@ At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:767 char:15
 +
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 + CategoryInfo : InvalidResult: (:) [Get-Counter], Exception
-+ FullyQualifiedErrorId : CounterApiError,Microsoft.PowerShell.Commands.Ge
-tCounterCommand
++ FullyQualifiedErrorId : CounterApiError,Microsoft.PowerShell.Commands.GetCounterCommand
 
 Get-Counter : The specified object was not found on the computer.
 At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:767 char:15
@@ -17,5 +16,17 @@ At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:767 char:15
 +
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 + CategoryInfo : InvalidResult: (:) [Get-Counter], Exception
-+ FullyQualifiedErrorId : CounterApiError,Microsoft.PowerShell.Commands.Ge
-tCounterCommand))
++ FullyQualifiedErrorId : CounterApiError,Microsoft.PowerShell.Commands.GetCounterCommand))
+
+
+
+
+New-NagiosResult : Cannot validate argument on parameter 'Value'. The argument
+is null or empty. Provide an argument that is not null or empty, and then try
+the command again.
+At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:513 char:85
++ ... usage" -Value $TotalPageFileUsage.CookedValue -Unit "%"
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++ CategoryInfo : InvalidData: (:) [New-NagiosResult], ParameterBi
+ndingValidationException
++ FullyQualifiedErrorId : ParameterArgumentValidationError,New-NagiosResult
