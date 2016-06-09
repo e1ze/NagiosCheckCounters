@@ -181,14 +181,14 @@ Of course you have to setup passwordless SSH connections using public keys to yo
 
 	define command{
         command_name    byssh
-        command_line    $USER1$/check_by_ssh -H $HOSTADDRESS$ -p 22 -l vagrant  -C '$ARG2$'
+        command_line    $USER1$/check_by_ssh -H $HOSTADDRESS$ -p 22 -l vagrant  -C '$ARG1$'
 	}
 	...
 	define service {
 	  use                   generic-service,srv-pnp
 	  host_name             MYHOST
 	  service_description   NagiosCheckCounters
-	  check_command         byssh!nsclient-cpu!powershell "& ""%ProgramFiles%\\NSClient++\\scripts\\NagiosCheckCounters.ps1"""
+	  check_command         byssh!powershell "& ""%ProgramFiles%\\NSClient++\\scripts\\NagiosCheckCounters.ps1"""
 	}
 	
 NagiosCheckCounters.ps1 is located in `%ProgramFiles%\NSClient++\scripts\NagiosCheckCounters.ps1` in this example.
