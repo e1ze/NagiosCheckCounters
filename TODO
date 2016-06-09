@@ -1,0 +1,21 @@
+Error:
+
+Get-Counter : The specified object was not found on the computer.
+At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:767 char:15
++ $RawValues = (Get-Counter -ComputerName $DefaultsStruct.ComputerName
+-Counter $C ...
++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++ CategoryInfo : InvalidResult: (:) [Get-Counter], Exception
++ FullyQualifiedErrorId : CounterApiError,Microsoft.PowerShell.Commands.Ge
+tCounterCommand
+
+Get-Counter : The specified object was not found on the computer.
+At C:\\Program Files\\NSClient++\\scripts\\NagiosCheckCounters.ps1:767 char:15
++ $RawValues = (Get-Counter -ComputerName $DefaultsStruct.ComputerName
+-Counter $C ...
++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++ CategoryInfo : InvalidResult: (:) [Get-Counter], Exception
++ FullyQualifiedErrorId : CounterApiError,Microsoft.PowerShell.Commands.Ge
+tCounterCommand))
