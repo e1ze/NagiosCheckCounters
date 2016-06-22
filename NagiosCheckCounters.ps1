@@ -1,7 +1,7 @@
 # Script name:   	NagiosCheckCounters.ps1
 # Version:			2016.06.08.01
 # Author:        	Michael Kraus
-# Purpose:       	Check a bunch of preselcted perfcounters using Powershell 
+# Purpose:       	Check a bunch of preselcted perfcounters using Powershell
 # On Github:		https://github.com/m-kraus/NagiosCheckCounters
 # Recent History:
 #	2016.06.08.01 => Initial version
@@ -15,11 +15,9 @@
 # Requires Powershell Version 2.0 or greater
 
 #TODO
-#   Limits
-#   Tests
-#   PNP/Perfdata correctness
-
-
+# Introduce limits
+# Introduce a check for system language
+# Timeout handling
 
 #######################################################################################################################
 #
@@ -113,9 +111,7 @@ $Counters = @(
 
 Function Initialize-Args {
 
-    Param (
-        [Parameter(Mandatory=$True)]$Args
-    )
+    Param ( [Parameter(Mandatory=$True)]$Args )
 
     try {
         For ( $i = 0; $i -lt $Args.count; $i++ ) {
@@ -157,25 +153,25 @@ Function Initialize-Args {
                     $i++
                 }
 
-                "^(--CpuWarn)$" {
-                    if (($value -match "^[\d]+$") -and ([int]$value -lt 999999)) {
-                        $DefaultsStruct.LimitCpu = 1
-                        $DefaultsStruct.LimitCpuWarn = $value
-                    } else {
-                        throw "Cpu warning does not meet regex requirements (`"^[\d]+$`"). Value given is `"$value`"."
-                    }
-                    $i++
-                 }
+#                "^(--CpuWarn)$" {
+#                    if (($value -match "^[\d]+$") -and ([int]$value -lt 999999)) {
+#                        $DefaultsStruct.LimitCpu = 1
+#                        $DefaultsStruct.LimitCpuWarn = $value
+#                    } else {
+#                        throw "Cpu warning does not meet regex requirements (`"^[\d]+$`"). Value given is `"$value`"."
+#                    }
+#                    $i++
+#                 }
 
-                "^(--CpuCrit)$" {
-                    if (($value -match "^[\d]+$") -and ([int]$value -lt 999999)) {
-                        $DefaultsStruct.LimitCpu = 1
-                        $DefaultsStruct.LimitCpuCrit = $value
-                    } else {
-                        throw "Cpu critical does not meet regex requirements (`"^[\d]+$`"). Value given is `"$value`"."
-                    }
-                    $i++
-                 }
+#                "^(--CpuCrit)$" {
+#                    if (($value -match "^[\d]+$") -and ([int]$value -lt 999999)) {
+#                        $DefaultsStruct.LimitCpu = 1
+#                        $DefaultsStruct.LimitCpuCrit = $value
+#                    } else {
+#                        throw "Cpu critical does not meet regex requirements (`"^[\d]+$`"). Value given is `"$value`"."
+#                    }
+#                    $i++
+#                 }
 
                 "^(-h|--Help)$" {
                     Write-Help
@@ -184,17 +180,17 @@ Function Initialize-Args {
                 default {
 
                     throw "Illegal arguments detected: $_"
-                 
+
                  }
             }
         }
     }
     catch {
 
-		Write-Host "Error: $_"
+        Write-Host "Error: $_"
         Exit 3
 
-	}
+    }
 
 }
 
@@ -228,7 +224,7 @@ Arguments:
     -x   | --Exclude         Optional comma separated list of exclusion filters (blacklist),
                              applicable to CpuNames, LogicalDiskNames, PhysDiskNames and InterfaceNames.
                              For example: "C:","X:"
-                             
+
                              Note: The blacklist is applied after the whitelist
 
     -h   | --Help 			 Print this help.
@@ -242,9 +238,13 @@ Function Process-Filter {
 
     Param ( [Parameter(Mandatory=$True)][string]$String )
 
+    # Sanitize instance names
+    #-#$pattern = '[^a-zA-Z0-9]'
+    #-#$String -replace $pattern, ''
+
     # set default
     $DoCheck = $false
-    # firts determine whitelist
+    # first determine whitelist
     if ( $script:DefaultsStruct.Include.Count -gt 0 ) {
         $script:DefaultsStruct.Include | ForEach-Object {
             If ( $String.Contains("$_") ) {
@@ -297,6 +297,7 @@ Function New-NagiosResult {
 
     Process {
 
+        $Value = [Math]::Round($Value, 2)
         $Results += "'$Label'=$Value$Unit"
 
     }
@@ -398,33 +399,34 @@ Function GetProcessorCounters {
 
             $Cpu = $_.Group
             $CpuName = (Get-Culture).TextInfo.ToTitleCase($_.Name)
+            $CpuName = $CpuName -replace $script:CleanPattern, ''
 
             if (Process-Filter $CpuName)  {
 
                 #Per CPU % Processor Time
                 $CpuValue = $Cpu | ? { ($_.Path -like "*\% processor time*") }
-                # TODO limit if ($CpuName -eq "_total") {
-                New-NagiosResult -Label "Processor($CpuName) % Processor Time" -Value $CpuValue.CookedValue -Unit "%"
+                # TODO limits/thresholds if ($CpuName -eq "_total") {
+                New-NagiosResult -Label "Cpu $CpuName PctProcTime" -Value $CpuValue.CookedValue -Unit "%"
 
                 #Per CPU % User Time
                 $CpuValue = $Cpu | ? { ($_.Path -like "*\% user time*") }
-                New-NagiosResult -Label "Processor($CpuName) % User Time" -Value $CpuValue.CookedValue -Unit "%"
+                New-NagiosResult -Label "Cpu $CpuName PctUserTime" -Value $CpuValue.CookedValue -Unit "%"
 
                 #Per CPU % Idle Time
                 $CpuValue = $Cpu | ? { ($_.Path -like "*\% idle time*") }
-                New-NagiosResult -Label "Processor($CpuName) % Idle Time" -Value $CpuValue.CookedValue -Unit "%"
+                New-NagiosResult -Label "Cpu $CpuName PctIdleTime" -Value $CpuValue.CookedValue -Unit "%"
 
                 #Per CPU % Interrupt Time
                 $CpuValue = $Cpu | ? { ($_.Path -like "*\% interrupt time*") }
-                New-NagiosResult -Label "Processor($CpuName) % Interrupt Time" -Value $CpuValue.CookedValue -Unit "%"
+                New-NagiosResult -Label "Cpu $CpuName PctIntrptTime" -Value $CpuValue.CookedValue -Unit "%"
 
                 #Per CPU % Privileged Time
                 $CpuValue = $Cpu | ? { ($_.Path -like "*\% privileged time*") }
-                New-NagiosResult -Label "Processor($CpuName) % Privileged Time" -Value $CpuValue.CookedValue -Unit "%"
+                New-NagiosResult -Label "Cpu $CpuName PctPrivTime" -Value $CpuValue.CookedValue -Unit "%"
 
                 #Per CPU Interrupts/sec
                 $CpuValue = $Cpu | ? { ($_.Path -like "*\interrupts/sec*") }
-                New-NagiosResult -Label "Processor($CpuName) Interrupts/sec" -Value $CpuValue.CookedValue
+                New-NagiosResult -Label "Cpu $CpuName IntrptsSec" -Value $CpuValue.CookedValue
 
             }
 
@@ -465,52 +467,52 @@ Function GetMemoryCounters {
         #Memory Available Bytes
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Available Bytes*") }
         # TODO limits
-        $PublishedResults += New-NagiosResult -Label "Memory Available Bytes" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "MemAvailBytes" -Value $MemValue.CookedValue -Unit "B"
 
         #Memory Committed Bytes
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Committed Bytes*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Committed Bytes" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "MemCommtdBytes" -Value $MemValue.CookedValue -Unit "B"
 
         #Memory System Code Total Bytes
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\System Code Total Bytes*") }
-        $PublishedResults += New-NagiosResult -Label "Memory System Code Total Bytes" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "MemSysCodeTtlBytes" -Value $MemValue.CookedValue -Unit "B"
 
         #Memory Pool Nonpaged Bytes
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Pool Nonpaged Bytes*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Pool Nonpaged Bytes" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "MemPoolNonpgdBytes" -Value $MemValue.CookedValue -Unit "B"
 
         #Memory Cache Bytes
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Cache Bytes*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Cache Bytes" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "MemCacheBytes" -Value $MemValue.CookedValue -Unit "B"
 
         #Memory Commit Limit
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Commit Limit*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Commit Limit" -Value $MemValue.CookedValue -Unit "B"
+        $PublishedResults += New-NagiosResult -Label "MemCommitLimit" -Value $MemValue.CookedValue -Unit "B"
 
         #Memory % Committed Bytes In Use
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\% Committed Bytes In Use*") }
-        $PublishedResults += New-NagiosResult -Label "Memory % Committed Bytes In Use" -Value $MemValue.CookedValue -Unit "%"
+        $PublishedResults += New-NagiosResult -Label "MemPctCommtdBytesInUse" -Value $MemValue.CookedValue -Unit "%"
 
         #Memory Pages/sec
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Pages/sec*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Pages/sec" -Value $MemValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "MemPagesSec" -Value $MemValue.CookedValue
 
         #Memory Page Faults/sec
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Page Faults/sec*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Page Faults/sec" -Value $MemValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "MemPageFaultsSec" -Value $MemValue.CookedValue
 
         #Memory Page Reads/sec
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Page Reads/sec*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Page Reads/sec" -Value $MemValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "MemPageReadsSec" -Value $MemValue.CookedValue
 
         #Memory Page Writes/sec
         $MemValue = $RawValues | ? { ($_.Path -like "*Memory\Page Writes/sec*") }
-        $PublishedResults += New-NagiosResult -Label "Memory Page Writes/sec" -Value $MemValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "MemPageWritesSec" -Value $MemValue.CookedValue
 
         #Total Paging File usage
         $TotalPageFileUsage = $RawValues | ? { ($_.Path -like "*Paging File(*)\% Usage*") -and ($_.InstanceName -eq "_total") }
         # TODO limits
-        $PublishedResults += New-NagiosResult -Label "Total Page File usage" -Value $TotalPageFileUsage.CookedValue -Unit "%"
+        $PublishedResults += New-NagiosResult -Label "TtlPageFileUsage" -Value $TotalPageFileUsage.CookedValue -Unit "%"
 
     }
     End {
@@ -549,15 +551,16 @@ Function GetDiskCounters {
 
             $Disk = $_.Group
             $DiskName = (Get-Culture).TextInfo.ToTitleCase($_.Name)
+            $DiskName = $DiskName -replace $script:CleanPattern, ''
 
             if (Process-Filter $DiskName)  {
                 $DiskSpacePercentage = $Disk | ? { ($_.Path -like "*% Free Space*") }
                 $DiskSpaceUsage = $Disk | ? { ($_.Path -like "*Free Megabytes*") }
 
                 # TODO limits
-                New-NagiosResult -Label "LogicalDisk($DiskName) % Free Space" -Value $DiskSpacePercentage.CookedValue -Unit "%"
+                New-NagiosResult -Label "LogDsk $DiskName PctFreeSpace" -Value $DiskSpacePercentage.CookedValue -Unit "%"
                 # TODO limits
-                New-NagiosResult -Label "LogicalDisk($DiskName) Free Bytes" -Value ($DiskSpaceUsage.CookedValue * 1024 * 1024) -Unit "B"
+                New-NagiosResult -Label "LogDsk $DiskName FreeBytes" -Value ($DiskSpaceUsage.CookedValue * 1024 * 1024) -Unit "B"
             }
 
         }
@@ -568,35 +571,36 @@ Function GetDiskCounters {
 
             $PhysDisk = $_.Group
             $PhysDiskName = (Get-Culture).TextInfo.ToTitleCase($_.Name)
+            $PhysDiskName = $PhysDiskName -replace $script:CleanPattern, ''
 
             if (Process-Filter $PhysDiskName) {
                 #Per PhysicalDisk Disk Transfers/sec
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Disk Transfers/sec*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Disk Transfers/sec" -Value $PhysDiskValue.CookedValue
+                New-NagiosResult -Label "PhyDsk $PhysDiskName DskTransfrSec" -Value $PhysDiskValue.CookedValue
 
                 #Per PhysicalDisk Disk Reads/sec
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Disk Reads/sec*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Disk Reads/sec" -Value $PhysDiskValue.CookedValue
+                New-NagiosResult -Label "PhyDsk $PhysDiskName DskReadsSec" -Value $PhysDiskValue.CookedValue
 
                 #Per PhysicalDisk Disk Writes/sec
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Disk Writes/sec*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Disk Writes/sec" -Value $PhysDiskValue.CookedValue
+                New-NagiosResult -Label "PhyDsk $PhysDiskName DskWritesSec" -Value $PhysDiskValue.CookedValue
 
                 #Per PhysicalDisk Disk Bytes/sec
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Disk Bytes/sec*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Disk Bytes/sec" -Value $PhysDiskValue.CookedValue -Unit "B"
+                New-NagiosResult -Label "PhyDsk $PhysDiskName DskBytesSec" -Value $PhysDiskValue.CookedValue -Unit "B"
 
                 #Per PhysicalDisk Disk Write Bytes/sec
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Disk Write Bytes/sec*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Disk Write Bytes/sec" -Value $PhysDiskValue.CookedValue -Unit "B"
+                New-NagiosResult -Label "PhyDsk $PhysDiskName DskWriteBytesSec" -Value $PhysDiskValue.CookedValue -Unit "B"
 
                 #Per PhysicalDisk Avg. Disk Bytes/Read
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Avg. Disk Bytes/Read*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Avg. Disk Bytes/Read" -Value $PhysDiskValue.CookedValue -Unit "B"
+                New-NagiosResult -Label "PhyDsk $PhysDiskName AvgDskBytesRead" -Value $PhysDiskValue.CookedValue -Unit "B"
 
                 #Per PhysicalDisk Avg. Disk Bytes/Write
                 $PhysDiskValue = $PhysDisk | ? { ($_.Path -like "*Avg. Disk Bytes/Write*") }
-                New-NagiosResult -Label "PhysicalDisk($PhysDiskName) Avg. Disk Bytes/Write" -Value $PhysDiskValue.CookedValue -Unit "B"
+                New-NagiosResult -Label "PhyDsk $PhysDiskName AvgDskBytesWrite" -Value $PhysDiskValue.CookedValue -Unit "B"
             }
 
         }
@@ -637,37 +641,38 @@ Function GetNetworkCounters {
         $PublishedResults += $SelectedObj | Group-Object InstanceName | ForEach-Object {
             $Interface = $_.Group
             $InterfaceName = (Get-Culture).TextInfo.ToTitleCase($_.Name)
+            $InterfaceName = $InterfaceName -replace $script:CleanPattern, ''
 
             if (Process-Filter $InterfaceName) {
                 $InterfaceTraffic = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Bytes Total/sec") }
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Bytes Total/sec" -Value $InterfaceTraffic.CookedValue -Unit "B"
+                New-NagiosResult -Label "NetInt $InterfaceName BytesTtlSec" -Value $InterfaceTraffic.CookedValue -Unit "B"
 
                 $InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Bytes Received/sec") }
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Bytes Received/sec" -Value $InterfaceValue.CookedValue -Unit "B"
+                New-NagiosResult -Label "NetInt $InterfaceName BytesRcvdSec" -Value $InterfaceValue.CookedValue -Unit "B"
 
                 $InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Bytes Sent/sec") }
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Bytes Sent/sec" -Value $InterfaceValue.CookedValue -Unit "B"
+                New-NagiosResult -Label "NetInt $InterfaceName BytesSentSec" -Value $InterfaceValue.CookedValue -Unit "B"
 
                 $InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Packets/sec") }
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Packets/sec" -Value $InterfaceValue.CookedValue
+                New-NagiosResult -Label "NetInt $InterfaceName PacketsSec" -Value $InterfaceValue.CookedValue
 
-                # TODO seems not set
+                # FIXME seems not set
                 #$InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Packets Received/sec") }
-                #New-NagiosResult -Label "Network Adapter($InterfaceName) Packets Received/sec" -Value $InterfaceValue.CookedValue
+                #New-NagiosResult -Label "NetInt $InterfaceName Packets Received/sec" -Value $InterfaceValue.CookedValue
 
-                # TODO seems not set
+                # FIXME seems not set
                 #$InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Packets Sent/sec") }
-                #New-NagiosResult -Label "Network Adapter($InterfaceName) Packets Sent/sec" -Value $InterfaceValue.CookedValue
+                #New-NagiosResult -Label "NetInt $InterfaceName Packets Sent/sec" -Value $InterfaceValue.CookedValue
 
                 $InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Packets Received Non-Unicast/sec") }
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Packets Received Non-Unicast/sec" -Value $InterfaceValue.CookedValue
+                New-NagiosResult -Label "NetInt $InterfaceName PacketsRcvdNonUnicastSec" -Value $InterfaceValue.CookedValue
 
                 $InterfaceValue = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Packets Received Unicast/sec") }
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Packets Received Unicast/sec" -Value $InterfaceValue.CookedValue
+                New-NagiosResult -Label "NetInt $InterfaceName PacketsRcvdUnicastSec" -Value $InterfaceValue.CookedValue
 
                 $InterfaceBandwith = $Interface | ? { ($_.Path -like "*\Network Interface(*)\Current Bandwidth") }
                 #$InterfaceBandwith = $Interface.Where{ ($_.Path -like "*\Network Interface(*)\Current Bandwidth") }.CookedValue
-                New-NagiosResult -Label "Network Adapter($InterfaceName) Current Bandwidth" -Value ($InterfaceBandwith.CookedValue / 8) -Unit "B"
+                New-NagiosResult -Label "NetInt $InterfaceName CurrBandwidth" -Value ($InterfaceBandwith.CookedValue / 8) -Unit "B"
 
                 # avoid division by zero
                 if ( $InterfaceBandwith.CookedValue -gt 0 ) {
@@ -676,9 +681,9 @@ Function GetNetworkCounters {
                 Else {
                     $InterfacePercentage = 0
                 }
-                
+
                 # TODO limits
-                New-NagiosResult -Label "Network Adapter($InterfaceName) % Usage" -Value $InterfacePercentage -Unit "%"
+                New-NagiosResult -Label "NetInt $InterfaceName PctUsage" -Value $InterfacePercentage -Unit "%"
             }
 
         }
@@ -716,27 +721,27 @@ Function GetSystemCounters {
 
         # System Processes
         $SysValue = $RawValues | ? { ($_.Path -like "*System\Processes*") }
-        $PublishedResults += New-NagiosResult -Label "System Processes" -Value $SysValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "SysProcesses" -Value $SysValue.CookedValue
 
         # System Processor Queue Length
         $SysValue = $RawValues | ? { ($_.Path -like "*System\Processor Queue Length*") }
-        $PublishedResults += New-NagiosResult -Label "System Processor Queue Length" -Value $SysValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "SysProcQueueLen" -Value $SysValue.CookedValue
 
         # System Threads
         $SysValue = $RawValues | ? { ($_.Path -like "*System\Threads*") }
-        $PublishedResults += New-NagiosResult -Label "System Threads" -Value $SysValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "SysThreads" -Value $SysValue.CookedValue
 
         # System System Calls/sec
         $SysValue = $RawValues | ? { ($_.Path -like "*System\System Calls/sec*") }
-        $PublishedResults += New-NagiosResult -Label "System System Calls/sec" -Value $SysValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "SysSystemCallsSec" -Value $SysValue.CookedValue
 
         # System File Read Operations/sec
         $SysValue = $RawValues | ? { ($_.Path -like "*System\File Read Operations/sec*") }
-        $PublishedResults += New-NagiosResult -Label "System File Read Operations/sec" -Value $SysValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "SysFileReadOperSec" -Value $SysValue.CookedValue
 
         # System File Write Operations/sec
         $SysValue = $RawValues | ? { ($_.Path -like "*System\File Write Operations/sec*") }
-        $PublishedResults += New-NagiosResult -Label "System File Write Operations/sec" -Value $SysValue.CookedValue
+        $PublishedResults += New-NagiosResult -Label "SysFileWriteOperSec" -Value $SysValue.CookedValue
 
     }
     End {
@@ -762,6 +767,8 @@ Remove-Module *
 
 # DEBUG
 #(Get-Counter -ComputerName $DefaultsStruct.ComputerName -Counter $Counters).CounterSamples | Format-Table -AutoSize
+
+$CleanPattern = '[^a-zA-Z0-9]'
 
 # get defined counters
 $RawValues = (Get-Counter -ComputerName $DefaultsStruct.ComputerName -Counter $Counters).CounterSamples
