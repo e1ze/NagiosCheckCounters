@@ -768,7 +768,7 @@ Remove-Module *
 # DEBUG
 #(Get-Counter -ComputerName $DefaultsStruct.ComputerName -Counter $Counters).CounterSamples | Format-Table -AutoSize
 
-$CleanPattern = '[^a-zA-Z0-9]'
+$CleanPattern = '[^a-zA-Z0-9:]'
 
 # get defined counters
 $RawValues = (Get-Counter -ComputerName $DefaultsStruct.ComputerName -Counter $Counters).CounterSamples

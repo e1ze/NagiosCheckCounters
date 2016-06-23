@@ -95,10 +95,10 @@ If not specified otherwise (see "Command reference" below), all modes are querie
 	
  	    -i   | --Include     Optional comma separated list of inclusion filters (whitelist),
                              applicable to CpuNames, LogicalDiskNames, PhysDiskNames and InterfaceNames.
- 	                         For example: "C:","X:"
+ 	                         For example: "C","X"
  	    -x   | --Exclude     Optional comma separated list of exclusion filters (blacklist),
                              applicable to CpuNames, LogicalDiskNames, PhysDiskNames and InterfaceNames.
-                             For example: "C:","X:"
+                             For example: "C","X"
 
                              Note: The blacklist is applied after the whitelist
 
@@ -111,20 +111,29 @@ Using modes you can limit the output of the plugin to one or more of the counter
 	-m cpu
 
 	-m cpu,mem,sys
+	
+### Shortening of Values and Instances
+
+Values are rounded to two decimal places.
+
+Instance Names are stripped from any other characters other than `a-z` `A-Z` `0-9` and `:`.
 
 ### Whitelist / Blacklist
 
-Whitelisting example only showing items containing `_Total` in mode `cpu`:
+Whitelisting example only showing items containing `Total` in mode `cpu`:
 
-	X:\> .\NagiosCheckCounters.ps1 -m cpu -i _Total
+	X:\> .\NagiosCheckCounters.ps1 -m cpu -i Total
 
-	OK: Queried vagrant-2012-r2 using modes [cpu] |'Processor(_Total) % Processor Time'=0.0069695142248638% 'Processor(_Total) % User Time'=0% 'Processor(_Total) % Idle Time'=99.1218012104556% 'Processor(_Total) % Interrupt Time'=0% 'Processor(_Total) % Privileged Time'=0% 'Processor(_Total) Interrupts/sec'=213.232710981228
+	OK: Queried vagrant-2012-r2 using modes [cpu] |'Cpu Total PctProcTime'=0% 'Cpu Total PctUserTime'=0% 'Cpu Total PctIdle
+	Time'=98.79% 'Cpu Total PctIntrptTime'=0% 'Cpu Total PctPrivTime'=0% 'Cpu Total IntrptsSec'=199.03
 	
 Blacklisting example ignoring all disk instance names containing `C:` in mode `disk`:
 
 	X:\> .\NagiosCheckCounters.ps1 -m disk -x C:
 
-	OK: Queried vagrant-2012-r2 using modes [disk] |'PhysicalDisk(_Total) Disk Transfers/sec'=0 'PhysicalDisk(_Total) Disk Reads/sec'=0 'PhysicalDisk(_Total) Disk Writes/sec'=0 'PhysicalDisk(_Total) Disk Bytes/sec'=0B 'PhysicalDisk(_Total) Disk Write Bytes/sec'=0B 'PhysicalDisk(_Total) Avg. Disk Bytes/Read'=0B 'PhysicalDisk(_Total) Avg. Disk Bytes/Write'=0B
+	OK: Queried vagrant-2012-r2 using modes [disk] |'PhyDsk Total DskTransfrSec'=2 'PhyDsk Total DskReadsSec'=2 'PhyDsk Tot
+	al DskWritesSec'=0 'PhyDsk Total DskBytesSec'=77876.14B 'PhyDsk Total DskWriteBytesSec'=0B 'PhyDsk Total AvgDskBytesRea
+	d'=38912B 'PhyDsk Total AvgDskBytesWrite'=0B
 	
 You can combine White- and Blackist. Whitelist items are applied **before** blacklist items.
 
@@ -132,7 +141,27 @@ You can combine White- and Blackist. Whitelist items are applied **before** blac
 
 	X:\> .\NagiosCheckCounters.ps1
 
-	OK: Queried vagrant-2012-r2 using modes [cpu mem disk net sys] |'Processor(0) % Processor Time'=1.60981107607874% 'Processor(0) % User Time'=0% 'Processor(0) % Idle Time'=98.6103763277141% 'Processor(0) % Interrupt Time'=0% 'Processor(0) % Privileged Time'=1.53734670193627% 'Processor(0) Interrupts/sec'=128.321950373717 'Processor(1) % Processor Time'=1.60981107607874% 'Processor(1) % User Time'=0% 'Processor(1) % Idle Time'=99.0074397741355% 'Processor(1) % Interrupt Time'=0% 'Processor(1) % Privileged Time'=1.53734670193627% 'Processor(1) Interrupts/sec'=100.68337644707 'Processor(_Total) % Processor Time'=1.60981107607874% 'Processor(_Total) % User Time'=0% 'Processor(_Total) % Idle Time'=98.8089080509248% 'Processor(_Total) % Interrupt Time'=0% 'Processor(_Total) % Privileged Time'=1.53734670193627% Processor(_Total) Interrupts/sec'=229.005326820788 'Memory Available Bytes'=513220608B 'Memory Committed Bytes'=952446976B 'Memory System Code Total Bytes'=3608576B 'Memory Pool Nonpaged Bytes'=37064704B 'Memory Cache Bytes'=7860224B 'Memory Commit Limit'=2674069504B 'Memory % Committed Bytes In Use'=35.6178840742653% 'Memory Pages/sec'=0 'Memory Page Faults/sec'=0.987091925951671 'Memory Page Reads/sec'=0 'Memory Page Writes/sec'=0 'Total Page File usage'=7.48835781178036% 'LogicalDisk(C:) % Free Space'=84.8052777186635% 'LogicalDisk(C:) Free Bytes'=54321479680B 'PhysicalDisk(0 C:) Disk Transfers/sec'=20.7289304449851 'PhysicalDisk(0 C:) Disk Reads/sec'=0 'PhysicalDisk(0 C:) Disk Writes/sec'=20.7289304449851 'PhysicalDisk(0 C:) Disk Bytes/sec'=271900.393554943B 'PhysicalDisk(0 C:) Disk Write Bytes/sec'=271900.393554943B 'PhysicalDisk(0 C:) Avg. Disk Bytes/Read'=0B 'PhysicalDisk(0 C:) Avg. Disk Bytes/Write'=13116.9523809524B 'PhysicalDisk(_Total) Disk Transfers/sec'=20.7289304449851 'PhysicalDisk(_Total) Disk Reads/sec'=0 'PhysicalDisk(_Total) Disk Writes/sec'=20.7289304449851 'PhysicalDisk(_Total) Disk Bytes/sec'=271900.393554943B 'PhysicalDisk(_Total) Disk Write Bytes/sec'=271900.393554943B 'PhysicalDisk(_Total) Avg. Disk Bytes/Read'=0B 'PhysicalDisk(_Total) Avg. Disk Bytes/Write'=13116.9523809524B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Bytes Total/sec'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Bytes Received/sec'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Bytes Sent/sec'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Packets/sec'=0 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Packets Received Non-Unicast/sec'=0 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Packets Received Unicast/sec'=0 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) Current Bandwidth'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter) % Usage'=0% 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Bytes Total/sec'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Bytes Received/sec'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Bytes Sent/sec'=0B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Packets/sec'=0 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Packets Received Non-Unicast/sec'=0 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Packets Received Unicast/sec'=0 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) Current Bandwidth'=125000000B 'Network Adapter(Intel[R] Pro_1000 Mt Desktop Adapter _2) % Usage'=0% 'System Processes'=35 'System Processor Queue Length'=0 'System Threads'=461 'System System Calls/sec'=645.558119572393 'System File Read Operations/sec'=8.88382733356504 'System File Write Operations/sec'=8.88382733356504
+	OK: Queried vagrant-2012-r2 using modes [cpu mem disk net sys] |'Cpu 0 PctProcTime'=0% 'Cpu 0 PctUserTime'=0% 'Cpu 0 Pc
+	tIdleTime'=97.51% 'Cpu 0 PctIntrptTime'=0% 'Cpu 0 PctPrivTime'=0% 'Cpu 0 IntrptsSec'=99.85 'Cpu 1 PctProcTime'=1.54% 'C
+	pu 1 PctUserTime'=0% 'Cpu 1 PctIdleTime'=97.99% 'Cpu 1 PctIntrptTime'=0% 'Cpu 1 PctPrivTime'=1.54% 'Cpu 1 IntrptsSec'=1
+	13.83 'Cpu Total PctProcTime'=0.77% 'Cpu Total PctUserTime'=0% 'Cpu Total PctIdleTime'=97.75% 'Cpu Total PctIntrptTime'
+	=0% 'Cpu Total PctPrivTime'=0.77% 'Cpu Total IntrptsSec'=213.67 'MemAvailBytes'=411959296B 'MemCommtdBytes'=934420480B
+	'MemSysCodeTtlBytes'=3608576B 'MemPoolNonpgdBytes'=33501184B 'MemCacheBytes'=24707072B 'MemCommitLimit'=2147012608B 'Me
+	mPctCommtdBytesInUse'=43.52% 'MemPagesSec'=0 'MemPageFaultsSec'=16.97 'MemPageReadsSec'=0 'MemPageWritesSec'=0 'TtlPage
+	FileUsage'=0% 'LogDsk C PctFreeSpace'=86.04% 'LogDsk C FreeBytes'=55110008832B 'PhyDsk 0C DskTransfrSec'=0 'PhyDsk 0C D
+	skReadsSec'=0 'PhyDsk 0C DskWritesSec'=0 'PhyDsk 0C DskBytesSec'=0B 'PhyDsk 0C DskWriteBytesSec'=0B 'PhyDsk 0C AvgDskBy
+	tesRead'=0B 'PhyDsk 0C AvgDskBytesWrite'=0B 'PhyDsk Total DskTransfrSec'=0 'PhyDsk Total DskReadsSec'=0 'PhyDsk Total D
+	skWritesSec'=0 'PhyDsk Total DskBytesSec'=0B 'PhyDsk Total DskWriteBytesSec'=0B 'PhyDsk Total AvgDskBytesRead'=0B 'PhyD
+	sk Total AvgDskBytesWrite'=0B 'NetInt IntelRPro1000MtDesktopAdapter BytesTtlSec'=0B 'NetInt IntelRPro1000MtDesktopAdapt
+	er BytesRcvdSec'=0B 'NetInt IntelRPro1000MtDesktopAdapter BytesSentSec'=0B 'NetInt IntelRPro1000MtDesktopAdapter Packet
+	sSec'=0 'NetInt IntelRPro1000MtDesktopAdapter PacketsRcvdNonUnicastSec'=0 'NetInt IntelRPro1000MtDesktopAdapter Packets
+	RcvdUnicastSec'=0 'NetInt IntelRPro1000MtDesktopAdapter CurrBandwidth'=125000000B 'NetInt IntelRPro1000MtDesktopAdapter
+	 PctUsage'=0% 'NetInt IntelRPro1000MtDesktopAdapter2 BytesTtlSec'=0B 'NetInt IntelRPro1000MtDesktopAdapter2 BytesRcvdSe
+	c'=0B 'NetInt IntelRPro1000MtDesktopAdapter2 BytesSentSec'=0B 'NetInt IntelRPro1000MtDesktopAdapter2 PacketsSec'=0 'Net
+	Int IntelRPro1000MtDesktopAdapter2 PacketsRcvdNonUnicastSec'=0 'NetInt IntelRPro1000MtDesktopAdapter2 PacketsRcvdUnicas
+	tSec'=0 'NetInt IntelRPro1000MtDesktopAdapter2 CurrBandwidth'=125000000B 'NetInt IntelRPro1000MtDesktopAdapter2 PctUsag
+	e'=0% 'SysProcesses'=37 'SysProcQueueLen'=0 'SysThreads'=491 'SysSystemCallsSec'=799.78 'SysFileReadOperSec'=9.98 'SysF
+	ileWriteOperSec'=9.98
 
 ## Nagios configuration and transports
 
